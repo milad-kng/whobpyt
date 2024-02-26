@@ -90,8 +90,8 @@ class ParamsCBnet(AbstractParams):
             "gL" : par(1), #gain on leak
 
             # time constant or self feedback gains each states voltage c and each reciptors kappa
-            "C"   : par(np.array([np.log(4/1000), np.log(16/1000), np.log(100/1000)]), asLog=True),
-            "kappa" : par(np.array([np.log(1000/8), np.log(1000/8), np.log(1000/8)]), asLog =True),
+            "C"   : par(np.array([np.log(8/1000), np.log(8/1000), np.log(8/1000)]), asLog=True),
+            "kappa" : par(np.array([np.log(1000/4), np.log(1000/16), np.log(1000/100)]), asLog =True),
 
 
             # connection between populations
