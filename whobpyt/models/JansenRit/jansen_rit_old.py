@@ -370,16 +370,16 @@ class RNNJANSEN(AbstractNMM):
                 Mv = 1000*torch.tanh(ddMv/1000)
                 #print('after M', M.shape)
                 # Update placeholders for pyramidal buffer
-                hE[:, 0] =sigmoid(M[:,0], vmax, v0, r)
+                hE[:, 0] =M[:,0]
 
             # Capture the states at every tr in the placeholders for checking them visually.
 
-            hE = torch.cat([sigmoid(M, vmax, v0, r), hE[:, :-1]], dim=1)  # update placeholders for pyramidal buffer
+            hE = torch.cat([M, hE[:, :-1]], dim=1)  # update placeholders for pyramidal buffer
 
             # Capture the states at every tr in the placeholders which is then used in the cost calculation.
             lm_t = (lm.T / torch.sqrt((lm ** 2).sum(1))).T
             self.lm_t = (lm_t - 1 / self.output_size * torch.matmul(torch.ones((1, self.output_size)), lm_t))
-            temp = cy0 * torch.matmul(self.lm_t, sigmoid(E-I, vmax, v0, r)) - 1 * y0
+            temp = cy0 * torch.matmul(self.lm_t, E-I) - 1 * y0
             eeg_window.append(temp)
             states_window.append(torch.cat([torch.cat([M, E, I], dim=1)[:,:,np.newaxis], \
                                    torch.cat([Mv, Ev, Iv], dim=1)[:,:,np.newaxis]], dim=2)[:,:,:,np.newaxis])
