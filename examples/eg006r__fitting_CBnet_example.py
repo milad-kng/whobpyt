@@ -100,7 +100,7 @@ data_mean = dataloader(eeg_data.T, num_epochs, TPperWindow)
 # %%
 # get model parameters structure and define the fitted parameters by setting non-zero variance for the model
 # get model parameters structure and define the fitted parameters by setting non-zero variance for the model
-lm =  0.01*np.random.randn(output_size,200)
+lm =  -np.ones((output_size,200))+0.01*np.random.randn(output_size,200)
 lm_v = 0.01*np.random.randn(output_size,200)
 params = ParamsCBnet( g= par(np.log(1.1), np.log(1.1),.1, True, True), \
                      g_f = par(np.log(30.1), np.log(30.1),.1, True, True), \
