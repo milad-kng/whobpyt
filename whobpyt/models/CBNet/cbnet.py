@@ -386,12 +386,12 @@ class RNNCBNET(AbstractNMM):
                 rgE[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gE[:,E_ind]))
                 rgE[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gE[:,I_ind]))
                 
-                rgI[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gI[:,P_ind]))
+                """rgI[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gI[:,P_ind]))
                 rgI[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gI[:,E_ind]))
-                rgI[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gI[:,I_ind]))
+                rgI[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gI[:,I_ind]))"""
                 
-                rgNMDA[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gNMDA[:,P_ind]))
-                rgNMDA[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gNMDA[:,E_ind]))
+                """rgNMDA[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gNMDA[:,P_ind]))
+                rgNMDA[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gNMDA[:,E_ind]))"""
                 rgNMDA[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gNMDA[:,I_ind]))
 
                 ddV = V + dt * (rV)/C
