@@ -115,6 +115,8 @@ class Model_fitting(AbstractFitting):
         if X is None:
             if self.model.model_name == "JR_thalam":
                 X, X_tha = self.model.createIC(ver = 0)
+            elif self.model.model_name == "JR_mode":
+                X, X_mode = self.model.createIC(ver = 0)
             else:
                 X = self.model.createIC(ver = 0)
         # initials of history of E
@@ -150,6 +152,9 @@ class Model_fitting(AbstractFitting):
             if self.model.model_name == "JR_thalam":
                 for name in ['states', 'states_tha'] + self.model.output_names:
                     windListDict[name] = []
+            elif self.model.model_name == "JR_mode":
+                for name in ['states', 'states_mode'] + self.model.output_names:
+                    windListDict[name] = []
             else:
                 for name in ['states'] + self.model.output_names:
                     windListDict[name] = []
@@ -174,14 +179,18 @@ class Model_fitting(AbstractFitting):
                 # Use the model.forward() function to update next state and get simulated EEG in this batch.
                 if self.model.model_name == "JR_thalam":
                     next_window, hE_new = self.model(external, X, X_tha, hE)
+                elif self.model.model_name == "JR_mode":
+                    next_window, hE_new = self.model(external, X, X_mode, hE)
                 else:
                     next_window, hE_new = self.model(external, X, hE)
                 #print(next_window['current_state'])
                 if self.model.model_name == "JR_thalam":
                     X_tha = torch.tensor(next_window['current_state_tha'].detach().numpy(), dtype=torch.float32)
+                if self.model.model_name == "JR_mode":
+                    X_mode = torch.tensor(next_window['current_state_mode'].detach().numpy(), dtype=torch.float32)
                 X = torch.tensor(next_window['current_state'].detach().numpy(), dtype=torch.float32)
-                if self.model.model_name == "JR_thalam":
-                    X_tha = next_window['current_state_tha'].detach().clone()
+                """if self.model.model_name == "JR_thalam":
+                    X_tha = next_window['current_state_tha'].detach().clone()"""
                 hE = torch.tensor(hE_new.detach().numpy(), dtype=torch.float32)
             print(X.shape)
             # LOOP 3/4: Number of windowed segments for the recording
@@ -200,6 +209,8 @@ class Model_fitting(AbstractFitting):
                 # LOOP 4/4: The loop within the forward model (numerical solver), which is number of time points per windowed segment
                 if self.model.model_name == "JR_thalam":
                     next_window, hE_new = self.model(external, X, X_tha, hE)
+                elif self.model.model_name == "JR_mode":
+                    next_window, hE_new = self.model(external, X, X_mode, hE)
                 else:
                     next_window, hE_new = self.model(external, X, hE)
 
@@ -217,6 +228,9 @@ class Model_fitting(AbstractFitting):
                 # TIME SERIES: Put the window of simulated forward model.
                 if self.model.model_name == "JR_thalam":
                     for name in ['states', 'states_tha'] + self.model.output_names:
+                        windListDict[name].append(next_window[name].detach().cpu().numpy())
+                elif self.model.model_name == "JR_mode":
+                    for name in ['states', 'states_mode'] + self.model.output_names:
                         windListDict[name].append(next_window[name].detach().cpu().numpy())
                 else:
                     for name in ['states'] + self.model.output_names:
@@ -239,6 +253,8 @@ class Model_fitting(AbstractFitting):
                 X = next_window['current_state'].detach().clone() # dtype=torch.float32
                 if self.model.model_name == "JR_thalam":
                     X_tha = next_window['current_state_tha'].detach().clone()
+                if self.model.model_name == "JR_mode":
+                    X_mode = next_window['current_state_mode'].detach().clone()
                 hE = hE_new.detach().clone() #dtype=torch.float32
 
                 trackedParam = {}
@@ -262,6 +278,9 @@ class Model_fitting(AbstractFitting):
             # TIME SERIES: Concatenate all windows together to get one recording
             if self.model.model_name == "JR_thalam":
                 for name in ['states', 'states_tha'] + self.model.output_names:
+                    windListDict[name] = np.concatenate(windListDict[name], axis=len(windListDict[name][0].shape)-1)
+            elif self.model.model_name == "JR_mode":
+                for name in ['states', 'states_mode'] + self.model.output_names:
                     windListDict[name] = np.concatenate(windListDict[name], axis=len(windListDict[name][0].shape)-1)
             else:
                 for name in ['states'] + self.model.output_names:
@@ -302,7 +321,9 @@ class Model_fitting(AbstractFitting):
         for i_out in range(len(self.model.output_names)):
             self.trainingStats.updateOutputs(windListDict[self.model.output_names[i_out]], self.model.output_names[i_out]+'_training')
         if self.model.model_name == "JR_thalam":
-            self.trainingStats.updateStates(windListDict['states_tha'], 'training')
+            self.trainingStats.updateStatesTha(windListDict['states_tha'], 'training')
+        if self.model.model_name == "JR_mode":
+            self.trainingStats.updateStatesMode(windListDict['states_mode'], 'training')
         self.trainingStats.updateStates(windListDict['states'], 'training')
 
     def evaluate(self, u, empRec, TPperWindow: int, base_window_num: int = 0, transient_num = 10, empRecSec = None, X =None, hE = None):
@@ -328,6 +349,8 @@ class Model_fitting(AbstractFitting):
         if X is None:
             if self.model.model_name == "JR_thalam":
                 X, X_tha = self.model.createIC(ver = 0)
+            elif self.model.model_name == "JR_mode":
+                X, X_mode = self.model.createIC(ver = 0)
             else:
                 X = self.model.createIC(ver = 0)
         # initials of history of E
@@ -346,6 +369,9 @@ class Model_fitting(AbstractFitting):
         windListDict = {} # A Dictionary with a List of windowed time series
         if self.model.model_name == "JR_thalam":
             for name in ['states', 'states_tha'] + self.model.output_names:
+                windListDict[name] = []
+        elif self.model.model_name == "JR_mode":
+            for name in ['states', 'states_mode'] + self.model.output_names:
                 windListDict[name] = []
         else:
             for name in ['states'] + self.model.output_names:
@@ -368,6 +394,8 @@ class Model_fitting(AbstractFitting):
             # LOOP 2/2: The loop within the forward model (numerical solver), which is number of time points per windowed segment
             if self.model.model_name == "JR_thalam":
                 next_window, hE_new = self.model(external, X, X_tha, hE)
+            elif self.model.model_name == "JR_mode":
+                next_window, hE_new = self.model(external, X, X_mode, hE)
             else:
                 next_window, hE_new = self.model(external, X, hE)
 
@@ -375,6 +403,9 @@ class Model_fitting(AbstractFitting):
             if win_idx > base_window_num - 1:
                 if self.model.model_name == "JR_thalam":
                     for name in ['states', 'states_tha'] + self.model.output_names:
+                        windListDict[name].append(next_window[name].detach().cpu().numpy())
+                elif self.model.model_name == "JR_mode":
+                    for name in ['states', 'states_mode'] + self.model.output_names:
                         windListDict[name].append(next_window[name].detach().cpu().numpy())
                 else:
                     for name in ['states'] + self.model.output_names:
@@ -384,6 +415,8 @@ class Model_fitting(AbstractFitting):
             X = next_window['current_state'].detach().clone() # dtype=torch.float32
             if self.model.model_name == "JR_thalam":
                 X_tha = next_window['current_state_tha'].detach().clone()
+            if self.model.model_name == "JR_mode":
+                X_mode = next_window['current_state_mode'].detach().clone()
             hE = hE_new.detach().clone() #dtype=torch.float32
 
         
@@ -391,6 +424,9 @@ class Model_fitting(AbstractFitting):
         # TIME SERIES: Concatenate all windows together to get one recording
         if self.model.model_name == "JR_thalam":
             for name in ['states', 'states_tha'] + self.model.output_names:
+                windListDict[name] = np.concatenate(windListDict[name], axis=len(windListDict[name][0].shape)-1)
+        elif self.model.model_name == "JR_mode":
+            for name in ['states', 'states_mode'] + self.model.output_names:
                 windListDict[name] = np.concatenate(windListDict[name], axis=len(windListDict[name][0].shape)-1)
         else:
             for name in ['states'] + self.model.output_names:
@@ -420,5 +456,7 @@ class Model_fitting(AbstractFitting):
         for i_out in range(len(self.model.output_names)):
             self.trainingStats.updateOutputs(windListDict[self.model.output_names[i_out]], self.model.output_names[i_out]+'_testing')
         if self.model.model_name == "JR_thalam":
-            self.trainingStats.updateStates(windListDict['states_tha'], 'testing') 
+            self.trainingStats.updateStatesTha(windListDict['states_tha'], 'testing') 
+        if self.model.model_name == "JR_mode":
+            self.trainingStats.updateStatesMode(windListDict['states_mode'], 'testing') 
         self.trainingStats.updateStates(windListDict['states'], 'testing')
