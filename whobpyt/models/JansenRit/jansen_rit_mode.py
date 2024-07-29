@@ -177,8 +177,9 @@ class RNNJANSEN(AbstractNMM):
         state_mod_ub = 1
         state_ini = torch.tensor(np.random.uniform(state_lb, state_ub, (self.node_size, self.pop_size, self.state_size)),
                              dtype=torch.float32)
-        state_mod_ini = torch.tensor(np.random.uniform(state_lb, state_ub, (self.mode_size, 3)),
-                             dtype=torch.float32)
+        y = self.eigvals[:self.mode_size]
+        x = -1*np.log((self.eigvals.max()-y)/y)
+        state_mod_ini = torch.tensor(np.array([x,x,x]).T, dtype=torch.float32)
         return state_ini, state_mod_ini
 
     def createDelayIC(self, ver):
@@ -372,9 +373,9 @@ class RNNJANSEN(AbstractNMM):
             for step_i in range(self.steps_per_TR):
                 #print(eigval_p2p.shape)
                 Ed = pttranspose(hE.clone().gather(1,self.delays), 0, 1)
-                lap_p2p = ptmatmul(ptmatmul(pteigvecs, ptdiag(1/(1+ptexp(-eigval_p2p[:,0])))),pteigvecs.T) +con_con
-                lap_p2e = ptmatmul(ptmatmul(pteigvecs, ptdiag(1/(1+ptexp(-eigval_p2e[:,0])))),pteigvecs.T) +con_con
-                lap_p2i = ptmatmul(ptmatmul(pteigvecs, ptdiag(1/(1+ptexp(-eigval_p2i[:,0])))),pteigvecs.T) +con_con
+                lap_p2p = ptmatmul(ptmatmul(pteigvecs, ptdiag(self.eigvals.max()/(1+ptexp(-1*eigval_p2p[:,0])))),pteigvecs.T) +0*con_con
+                lap_p2e = ptmatmul(ptmatmul(pteigvecs, ptdiag(self.eigvals.max()/(1+ptexp(-1*eigval_p2e[:,0])))),pteigvecs.T) +0*con_con
+                lap_p2i = ptmatmul(ptmatmul(pteigvecs, ptdiag(self.eigvals.max()/(1+ptexp(-1*eigval_p2i[:,0])))),pteigvecs.T) +0*con_con
                 dg_p2p = -ptdiag(lap_p2p)
                 dg_p2e = -ptdiag(lap_p2e)
                 dg_p2i = -ptdiag(lap_p2i)
@@ -427,13 +428,13 @@ class RNNJANSEN(AbstractNMM):
                 Ev_tp1 = Ev + dt * ( A*a*rE_bd  -  2*a*Ev  -  a**2 * E )
                 Iv_tp1 = Iv + dt * ( B*b*rI_bd  -  2*b*Iv  -  b**2 * I )
                 
-                Ieigvec_p2p = g_mode * ptmatmul(lap_adj_p2p, eigval_p2p) + 0.1*ptmatmul(pteigvecs.T,P) # input currents for E
-                Ieigvec_p2i = g_mode * ptmatmul(lap_adj_p2i, eigval_p2i) + 0.1*ptmatmul(pteigvecs.T,P)
-                Ieigvec_p2e = g_mode * ptmatmul(lap_adj_p2e, eigval_p2e) + 0.1*ptmatmul(pteigvecs.T,P)
+                Ieigvec_p2p = g_mode * ptmatmul(lap_adj_p2p, eigval_p2p)-.1*ptmatmul(pteigvecs.T,P) # input currents for E
+                Ieigvec_p2i = g_mode * ptmatmul(lap_adj_p2i, eigval_p2i) - .1*ptmatmul(pteigvecs.T,P)
+                Ieigvec_p2e = g_mode * ptmatmul(lap_adj_p2e, eigval_p2e) - .1*ptmatmul(pteigvecs.T,P)
                 
-                eigval_p2p1 = eigval_p2p + dt * (- 1*eigval_p2p + pttanh(Ieigvec_p2p)) +ptsqrt(dt)*0.05*ptrandn(n_modes, 1)
-                eigval_p2e1 = eigval_p2e + dt * (- 1*eigval_p2e + pttanh(Ieigvec_p2e)) +ptsqrt(dt)*0.05*ptrandn(n_modes, 1)
-                eigval_p2i1 = eigval_p2i + dt * (- 1*eigval_p2i + pttanh(Ieigvec_p2i)) +ptsqrt(dt)*0.05*ptrandn(n_modes, 1)
+                eigval_p2p1 = eigval_p2p + dt * (- 10*eigval_p2p + pttanh(Ieigvec_p2p)) +ptsqrt(dt)*0.01*ptrandn(n_modes, 1)
+                eigval_p2e1 = eigval_p2e + dt * (- 10*eigval_p2e + pttanh(Ieigvec_p2e)) +ptsqrt(dt)*0.01*ptrandn(n_modes, 1)
+                eigval_p2i1 = eigval_p2i + dt * (- 10*eigval_p2i + pttanh(Ieigvec_p2i)) +ptsqrt(dt)*0.01*ptrandn(n_modes, 1)
                 
                 # Calculate the saturation for model states (for stability and gradient calculation).
                 
