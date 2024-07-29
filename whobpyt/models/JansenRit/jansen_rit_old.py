@@ -260,7 +260,7 @@ class RNNJANSEN(AbstractNMM):
         v0 = self.params.v0.value()
         r = self.params.r.value()
         y0 = self.params.y0.value()
-        mu = (0.1 * con_1 + m(self.params.mu.value()))
+        mu = (1 * con_1 + m(self.params.mu.value()))
         k = (5.0 * con_1 + m(self.params.k.value()))
         cy0 = self.params.cy0.value()
         ki = self.params.ki.value()
