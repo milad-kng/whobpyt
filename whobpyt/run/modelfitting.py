@@ -326,7 +326,7 @@ class Model_fitting(AbstractFitting):
             self.trainingStats.updateStatesMode(windListDict['states_mode'], 'training')
         self.trainingStats.updateStates(windListDict['states'], 'training')
 
-    def evaluate(self, u, empRec, TPperWindow: int, base_window_num: int = 0, transient_num = 10, empRecSec = None, X =None, hE = None):
+    def evaluate(self, u, empRec, TPperWindow: int, base_window_num: int = 0, transient_num = 10, empRecSec = None, X =None, hE = None, mask = None):
         """
         Parameters
         ----------
@@ -346,6 +346,8 @@ class Model_fitting(AbstractFitting):
         #TODO: Should be updated to take a list of u and empRec
 
         # initial state
+        if mask is not None:
+            self.model.mask = mask
         if X is None:
             if self.model.model_name == "JR_thalam":
                 X, X_tha = self.model.createIC(ver = 0)
@@ -392,12 +394,14 @@ class Model_fitting(AbstractFitting):
                 dtype=torch.float32)
 
             # LOOP 2/2: The loop within the forward model (numerical solver), which is number of time points per windowed segment
+            
             if self.model.model_name == "JR_thalam":
                 next_window, hE_new = self.model(external, X, X_tha, hE)
             elif self.model.model_name == "JR_mode":
                 next_window, hE_new = self.model(external, X, X_mode, hE)
             else:
                 next_window, hE_new = self.model(external, X, hE)
+            
 
             # TIME SERIES: Put the window of simulated forward model.
             if win_idx > base_window_num - 1:
