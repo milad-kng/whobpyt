@@ -99,7 +99,7 @@ class RNNJANSEN(AbstractNMM):
     """
 
     def __init__(self, params: ParamsJR, node_size=200,
-                 TRs_per_window=20, step_size=0.0001, output_size= 62, tr=0.001, sc=np.ones((200,200)), lm=np.ones((62,200)), dist=np.ones((200,200)), use_fit_gains=True):
+                 TRs_per_window=20, step_size=0.0001, output_size= 62, tr=0.001, sc=np.ones((200,200)), lm=np.ones((62,200)), dist=np.ones((200,200)), use_fit_gains=True, mask = np.ones((200,200))):
         """
         Parameters
         ----------
@@ -149,6 +149,7 @@ class RNNJANSEN(AbstractNMM):
         #self.use_fit_lfm = use_fit_lfm
         self.params = params
         self.output_size = lm.shape[0]  # number of EEG channels
+        self.mask = mask
 
         self.setModelParameters()
         self.setModelSCParameters()
@@ -305,19 +306,19 @@ class RNNJANSEN(AbstractNMM):
 
             # Update the Laplacian based on the updated connection gains w_bb.
             w_b = ptexp(self.w_bb) * ptsc
-            w_n_b = w_b / ptnorm(w_b)
+            w_n_b = w_b / ptnorm(w_b)*pttensor(self.mask, dtype=ptfloat32)
             self.sc_m_b = w_n_b
             dg_b = -ptdiag(ptsum(w_n_b, dim=1))
 
             # Update the Laplacian based on the updated connection gains w_ff.
             w_f = ptexp(self.w_ff) * ptsc     
-            w_n_f = w_f / ptnorm(w_f)
+            w_n_f = w_f / ptnorm(w_f)*pttensor(self.mask, dtype=ptfloat32)
             self.sc_m_f = w_n_f
             dg_f = -ptdiag(ptsum(w_n_f, dim=1))
 
             # Update the Laplacian based on the updated connection gains w_ll.
             w_l = ptexp(self.w_ll) * ptsc         
-            w_n_l = (0.5 * (w_l + pttranspose(w_l, 0, 1))) / ptnorm(0.5 * (w_l + pttranspose(w_l, 0, 1)))
+            w_n_l = (0.5 * (w_l + pttranspose(w_l, 0, 1))) / ptnorm(0.5 * (w_l + pttranspose(w_l, 0, 1)))*pttensor(self.mask, dtype=ptfloat32)
             self.sc_fitted = w_n_l
             dg_l = -ptdiag(ptsum(w_n_l, dim=1))
         else:
