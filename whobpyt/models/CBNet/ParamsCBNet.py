@@ -85,7 +85,8 @@ class ParamsCBnet(AbstractParams):
             "alpha_mg": par(0.06),
              # estimate of V distributin
             "VR" : par(-40), #mean
-            "pi_sigma" : par(np.log(np.array([32, 32, 32])), asLog=True), #std
+            # "pi_sigma" : par(np.log(np.array([32, 32, 32])), asLog=True), #std
+            "pi_sigma" : par(np.log(np.sqrt(np.array([75,75,75]))), asLog=True), #std
 
             "gL" : par(1), #gain on leak
 
@@ -96,11 +97,20 @@ class ParamsCBnet(AbstractParams):
 
             # connection between populations
             "gamma_gE" :   par(np.log(64)*np.ones((3,3)), asLog=True), # connection gains in E reciptor among populations
-            "gamma_gE_sc" : par(np.array([[0, 0, 1],[0, 0, 1],[1, 0, 0]])),
+            "gamma_gE_sc" : par(np.array([[0, 0, 1],
+                                          [0, 0, 1],
+                                          [1, 0, 0]])),
             "gamma_gI" :   par(np.log(64)*np.ones((3,3)), asLog=True), # connection gains in I reciptor among populations
-            "gamma_gI_sc" : par(np.array([[0, 0, 0],[0, 0, 0],[0, 1, 0]])),
+            # "gamma_gI_sc" : par(np.array([[0, 0, 0],
+            #                               [0, 0, 0],
+            #                               [0, 1, 0]])),
+            "gamma_gI_sc" : par(np.array([[0, 1, 0],
+                                          [0, 0, 0],
+                                          [0, 1, 0]])),
             "gamma_gNMDA" :   par(np.log(64)*np.ones((3,3)), asLog=True), # connection gains in NMDA reciptor among populations
-            "gamma_gNMDA_sc" : par(np.array([[0, 0, 1],[0, 0, 1],[1, 0, 0]])),
+            "gamma_gNMDA_sc" : par(np.array([[0, 0, 1],
+                                             [0, 0, 1],
+                                             [1, 0, 0]])),
 
             # conduct velocity (delay between regions)
             "mu": par(.5),
@@ -111,11 +121,16 @@ class ParamsCBnet(AbstractParams):
             "g": par(100),
             "g_f": par(10),
             "g_b": par(10),
+            
+            "C_f": par(np.ones((200,200))),
+            "C_l": par(np.ones((200,200))),
+            "C_b": par(np.ones((200,200))),
             # parameters for channal eeg (magitude related)
             "cy0": par(5),
-            "ki": par(1)
+            "ki": par(1),
+            "BE": par(0.125)
         }
-
+        print('Connectivity restricted...')
         for var in params:
             if var not in self.params:
                 self.params[var] = params[var]
