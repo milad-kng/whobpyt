@@ -101,12 +101,12 @@ class ParamsCBnet(AbstractParams):
                                           [0, 0, 1],
                                           [1, 0, 0]])),
             "gamma_gI" :   par(np.log(64)*np.ones((3,3)), asLog=True), # connection gains in I reciptor among populations
-            # "gamma_gI_sc" : par(np.array([[0, 0, 0],
-            #                               [0, 0, 0],
-            #                               [0, 1, 0]])),
-            "gamma_gI_sc" : par(np.array([[0, 1, 0],
+            "gamma_gI_sc" : par(np.array([[0, 0, 0],
                                           [0, 0, 0],
                                           [0, 1, 0]])),
+            # "gamma_gI_sc" : par(np.array([[0, 1, 0],
+            #                               [0, 0, 0],
+            #                               [0, 1, 0]])),
             "gamma_gNMDA" :   par(np.log(64)*np.ones((3,3)), asLog=True), # connection gains in NMDA reciptor among populations
             "gamma_gNMDA_sc" : par(np.array([[0, 0, 1],
                                              [0, 0, 1],
