@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul  9 09:58:21 2024
+
+@author: milad
+"""
+
 """
 Authors: Milad Soltanzadeh, Zheng Wang, John Griffiths, Andrew Clappison,Davide Momi, Sorenza Bastiaens, Kevin Kadak, Parsa Oveisi, Taha Morshedzadeh, Shreyas Harita 
 Neural Mass Model fitting module for JR with forward, backward, and lateral connection for EEG
@@ -147,7 +154,8 @@ class RNNCBNET(AbstractNMM):
 
     def m_nmda(self,alpha, v):
 
-        m = 1.0/(1 + 0.2*torch.exp(-alpha*v))
+        # m = 1.0/(1 + 0.2*torch.exp(-alpha*v))
+        m = 1.50265/(1 + 0.33*torch.exp(-alpha*v))
         return m
 
     
@@ -166,12 +174,20 @@ class RNNCBNET(AbstractNMM):
             Tensor of shape (node_size, state_size) with random values between `state_lb` and `state_ub`.
         """
 
-        state_lb = -0.5
-        state_ub = 0.5
+        # state_lb = -0.1
+        # state_ub = 0.1
 
-        return torch.tensor(np.random.uniform(-1, 1, (self.node_size, self.pop_size, self.state_size))\
-                             + np.array([-60, 64, 64, 64]), dtype=torch.float32)
+        # return torch.tensor(np.random.uniform(-1, 1, (self.node_size, self.pop_size, self.state_size))\
+        #                      + np.array([-60, 64, 64, 64]), dtype=torch.float32)
+        v_lb = -70
+        v_ub = -40
+        g_lb = 0.1
+        g_ub = 0.3
+        
+        v_ic = -70*np.ones((self.node_size, self.pop_size, 1))#(np.random.uniform(v_lb, v_ub, (self.node_size, self.pop_size, 1))
+        g_ic = 0.125*np.ones((self.node_size, self.pop_size, 3))#np.random.uniform(g_lb, g_ub, (self.node_size, self.pop_size, self.state_size-1))
 
+        return torch.tensor(np.concatenate([v_ic,g_ic],axis = 2), dtype=torch.float32)
     def createDelayIC(self, ver):
         """
         Creates the initial conditions for the delays.
@@ -188,10 +204,11 @@ class RNNCBNET(AbstractNMM):
         """
 
         delays_max = 500
-        state_ub = 0.2
-        state_lb = -0.2
+        state_ub = .10
+        state_lb = 0
 
-        return torch.tensor(np.random.uniform(state_lb, state_ub, (self.node_size,  delays_max)), dtype=torch.float32)
+        # return torch.tensor(np.random.uniform(state_lb, state_ub, (self.node_size,  delays_max)), dtype=torch.float32)
+        return torch.tensor(0.0003*np.ones ((self.node_size,  delays_max)),dtype=torch.float32)#(state_lb, state_ub, (self.node_size,  delays_max)), dtype=torch.float32)
 
     def setModelSCParameters(self):
         """
@@ -230,22 +247,22 @@ class RNNCBNET(AbstractNMM):
         con_1 = torch.tensor(1.0, dtype=torch.float32)
         # Defining NMM Parameters to simplify later equations
         #TODO: Change code so that params returns actual value used without extras below
-        VL = m(self.params.VL.value())
-        VI = m(self.params.VI.value())
-        VE = m(self.params.VE.value())
-        VNMDA = m(self.params.VNMDA.value())
+        VL = self.params.VL.value()
+        VI = self.params.VI.value()
+        VE = self.params.VE.value()
+        VNMDA = self.params.VNMDA.value()
 
-        alpha_mg = m(self.params.alpha_mg.value())
+        alpha_mg = self.params.alpha_mg.value()
 
-        VR = m(self.params.VR.value())
-        pi_sigma = m(self.params.pi_sigma.value())
+        VR = self.params.VR.value()
+        pi_sigma = self.params.pi_sigma.value()
 
-        gL = m(self.params.gL.value())
+        gL = self.params.gL.value()
 
         C = m(self.params.C.value())
         kappa = m(self.params.kappa.value())
 
-        gamma_gE = m(self.params.gamma_gE.value())
+        gamma_gE = m(self.params.gamma_gE.value()) ### check the Relu effect
         gamma_gE_sc = m(self.params.gamma_gE_sc.value())
         gamma_gI = m(self.params.gamma_gI.value())
         gamma_gI_sc = m(self.params.gamma_gI_sc.value())
@@ -254,7 +271,7 @@ class RNNCBNET(AbstractNMM):
         gamma_k = m(self.params.gamma_k.value())
 
         sigma_V = (noise_std_lb * con_1 + m(self.params.sigma_V.value())) #around 2
-        sigma_g = (noise_std_lb * con_1 + m(self.params.sigma_g.value()))
+        sigma_g = (0.1*noise_std_lb * con_1 + m(self.params.sigma_g.value()))
 
         y0 = self.params.y0.value()
         mu = (0.1 * con_1 + m(self.params.mu.value()))
@@ -325,14 +342,16 @@ class RNNCBNET(AbstractNMM):
         eeg_window = []
         states_window = []
 
-        max_xi = max([torch.norm(gamma_gE*gamma_gE_sc), \
-                      torch.norm(gamma_gI*gamma_gI_sc), \
-                      torch.norm(gamma_gNMDA*gamma_gE_sc)])
+        # max_xi = max([torch.norm(gamma_gE*gamma_gE_sc), \
+        #               torch.norm(gamma_gI*gamma_gI_sc), \
+        #               torch.norm(gamma_gNMDA*gamma_gE_sc)])
         #print('V', V.shape)
         # Use the forward model to get EEG signal at ith element in the window.
         for i_window in range(self.TRs_per_window):
 
             for step_i in range(self.steps_per_TR):
+                
+                
                 Ed = torch.tensor(np.zeros((self.node_size, self.node_size)), dtype=torch.float32)  # delayed E
 
                 """for ind in range(model.node_size):
@@ -358,36 +377,61 @@ class RNNCBNET(AbstractNMM):
                 for i in range(self.pop_size):
                     norm.append(Normal(VR,pi_sigma[i]))
                 # LEd+torch.matmul(dg,E): Laplacian on delayed E
-                rV = gL*(VL) + gE*VE +gI*VI \
-                          + gNMDA*self.m_nmda(alpha_mg,V)*(VNMDA)-(0.1+m(gL + gE +gI + gNMDA*self.m_nmda(alpha_mg,V)))*V\
-                          + u_tms + sigma_V*torch.randn(self.node_size, self.pop_size)
+                # rV = gL*(VL) + gE*VE +gI*VI \
+                #           + gNMDA*self.m_nmda(alpha_mg,V)*(VNMDA)-(gL + gE +gI + gNMDA*self.m_nmda(alpha_mg,V))*V\
+                #           + k*ki*u_tms + sigma_V*torch.randn(self.node_size, self.pop_size)
+                rV = gL*(VL-V) + gE*(VE-V) +gI*(VI-V) \
+                          + gNMDA*self.m_nmda(alpha_mg,V)*(VNMDA-V)\
+                          + k*ki*u_tms + sigma_V*torch.randn(self.node_size, self.pop_size)
                 #print((LEd_f + 1 * torch.matmul(dg_f, (V[:,self.pop_names == 'E']- V[:,self.pop_names == 'I']))).shape)
-                rV[:,P_ind] += g * (
-                          LEd_l + 1 * torch.matmul(dg_l, (V[:,P_ind])))
-                rV[:,E_ind] += g_f * \
-                      (LEd_f + 1 * torch.matmul(dg_f, (V[:,E_ind]- V[:,I_ind])))
-                rV[:,I_ind] += g_b * \
-                      (-LEd_b - 1 * torch.matmul(dg_b, (V[:,E_ind]- V[:,I_ind])))
-                xi = torch.cat([norm[j].cdf(V[:,:,np.newaxis].mean(0)[j]).float() for j in range(self.pop_size)])
+                
+                      
+                
+                xi = torch.cat([norm[j].cdf(V[:,j:j+1]).float() for j in range(self.pop_size)], dim=1)
+                # max_xi = torch.max(xi)
+                # max_xi = max([torch.norm(gamma_gE*gamma_gE_sc), \
+                #               torch.norm(gamma_gI*gamma_gI_sc), \
+                #               torch.norm(gamma_gNMDA*gamma_gNMDA_sc)])
+                max_xi = 1
                 #print(xi.shape)
-                rgE = gamma_k *torch.matmul(1*(gamma_gE*gamma_gE_sc)/max_xi, xi) - gE\
+                rgE = gamma_k *torch.matmul(1*(gamma_gE*gamma_gE_sc)/max_xi, xi.T).T - gE\
                         +1*sigma_g*torch.randn(self.node_size, self.pop_size)
 
                 #xi = torch.concatenate([norm[j].cdf(V[:,j]).float()[:,np.newaxis] for j in range(self.pop_size)], dim=1)
-                rgI = gamma_k *torch.matmul(1*(gamma_gI*gamma_gI_sc)/max_xi, xi) -gI\
+                rgI = gamma_k *torch.matmul(1*(gamma_gI*gamma_gI_sc)/max_xi, xi.T).T -gI\
                         +sigma_g*torch.randn(self.node_size, self.pop_size)
-
 
                 #xi_gNMDA = torch.concatenate([norm[j].cdf(gNMDA[:,j]).float()[:,np.newaxis] for j in range(self.pop_size)], dim=1)
-                rgNMDA = gamma_k *torch.matmul(1*(gamma_gNMDA*gamma_gE_sc)/max_xi, xi) - gNMDA\
+                rgNMDA = gamma_k *torch.matmul(1*(gamma_gNMDA*gamma_gNMDA_sc)/max_xi, xi.T).T - gNMDA\
                         +sigma_g*torch.randn(self.node_size, self.pop_size)
                 # Update the states by step-size.
+                
+                # rgE[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gE[:,P_ind]))
+                # rgE[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gE[:,E_ind]))
+                # rgE[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gE[:,I_ind]))
+                
+                # rgE[:,E_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gE[:,E_ind]))
+                # rgE[:,I_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gE[:,I_ind]))
+                rgE[:,P_ind] += g * (LEd_l)# + 1*torch.matmul(dg_l, gE[:,P_ind]))
+                rgE[:,E_ind] += g_f * (LEd_f)# + 1*torch.matmul(dg_f, gE[:,E_ind]))
+                rgE[:,I_ind] += g_b * (LEd_b)# + 1*torch.matmul(dg_b, gE[:,I_ind]))
+                
+                """rgI[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gI[:,P_ind]))
+                rgI[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gI[:,E_ind]))
+                rgI[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gI[:,I_ind]))"""
+                
+                """rgNMDA[:,P_ind] += g * (LEd_l + 1*torch.matmul(dg_l, gNMDA[:,P_ind]))
+                rgNMDA[:,E_ind] += g_f * (LEd_f + 1*torch.matmul(dg_f, gNMDA[:,E_ind]))"""
+                # rgNMDA[:,P_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gNMDA[:,P_ind]))
+                # rgNMDA[:,I_ind] += g_b * (-LEd_b + 1*torch.matmul(dg_b, gNMDA[:,I_ind]))
+                rgNMDA[:,I_ind] += g_b * (LEd_b)# + 1*torch.matmul(dg_b, gNMDA[:,I_ind]))
+                
 
                 ddV = V + dt * (rV)/C
 
-                ddgE = gE + dt * (rgE) * kappa[0]
+                ddgE = gE + dt * (rgE+self.params.BE.value()) * kappa[0]
                 ddgI = gI + dt * (rgI) * kappa[1]
-                ddgNMDA =gNMDA + dt* (rgNMDA) *kappa[2]
+                ddgNMDA =gNMDA + dt* (rgNMDA+self.params.BE.value()) *kappa[2]
                 # Calculate the saturation for model states (for stability and gradient calculation).
                 V = 1000*torch.tanh(ddV/1000)
                 gE = 1000*torch.tanh(ddgE/1000)
@@ -395,7 +439,7 @@ class RNNCBNET(AbstractNMM):
                 gNMDA = 1000*torch.tanh(ddgNMDA/1000)
 
                 # update placeholders for E buffer
-                hE[:, 0] = V[:,P_ind][:,0]
+                hE[:, 0] = (xi[:,P_ind])[:,0]
                 # update the states
             
 
@@ -403,7 +447,7 @@ class RNNCBNET(AbstractNMM):
             states_window.append(torch.cat([V[:,:,np.newaxis] , gE[:,:,np.newaxis], gI[:,:,np.newaxis],\
                                             gNMDA[:,:,np.newaxis]], dim =2)[:,:,:,np.newaxis])
 
-            hE = torch.cat([V[:,P_ind], hE[:, :-1]], dim=1)  # update placeholders for E buffer
+            hE = torch.cat([xi[:,P_ind], hE[:, :-1]], dim=1)  # update placeholders for E buffer
 
             # Put the EEG signal each tr to the placeholder being used in the cost calculation.
             lm_t = (lm.T / torch.sqrt(lm ** 2).sum(1)).T
@@ -411,7 +455,7 @@ class RNNCBNET(AbstractNMM):
             self.lm_t = (lm_t - 1 / self.output_size * torch.matmul(torch.ones((1, self.output_size)),
                                                                       lm_t))  # s2o_coef *
             #print(V[:,E_ind].shape)
-            temp = cy0 * torch.matmul(self.lm_t, (V[:,E_ind]-1*V[:,I_ind].mean())) - 1 * y0
+            temp = cy0 * torch.matmul(self.lm_t, xi[:,E_ind]-xi[:,I_ind]) - 1 * y0
             eeg_window.append(temp)  # torch.abs(E) - torch.abs(I) + 0.0*noiseEEG)
 
         # Update the current state.

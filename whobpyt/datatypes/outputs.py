@@ -58,6 +58,8 @@ class TrainingStats:
         self.fit_params = {}
         self.outputs = {}
         self.states = {}
+        self.states_mode = {}
+        self.states_tha = {}
 
     def save(self, filename):
         '''
@@ -86,12 +88,18 @@ class TrainingStats:
 
         self.outputs = {}
         self.states = {}
+        self.states_mode = {}
+        self.states_tha = {}
 
     def updateOutputs(self, newValue, mode: str):
         self.outputs[mode] = newValue
 
     def updateStates(self, newValue, mode: str):
         self.states[mode] = newValue
+    def updateStatesTha(self, newValue, mode: str):
+        self.states_tha[mode] = newValue
+    def updateStatesMode(self, newValue, mode: str):
+        self.states_mode[mode] = newValue
 
     def appendLoss(self, newValue):
         """
